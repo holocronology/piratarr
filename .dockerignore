@@ -1,0 +1,13 @@
+.git
+.gitignore
+*.pyc
+__pycache__
+*.egg-info
+.venv
+venv
+config/
+tests/
+.github/
+*.md
+LICENSE
+docker-compose.yml

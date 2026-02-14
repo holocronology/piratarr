@@ -1,0 +1,23 @@
+services:
+  piratarr:
+    build: .
+    container_name: piratarr
+    restart: unless-stopped
+    ports:
+      - "6969:6969"
+    volumes:
+      - ./config:/config
+      # Mount your media libraries (adjust paths to match your setup)
+      # - /path/to/movies:/movies
+      # - /path/to/tv:/tv
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+      # Optional: pre-configure via environment variables
+      # - RADARR_URL=http://radarr:7878
+      # - RADARR_API_KEY=your_radarr_api_key
+      # - SONARR_URL=http://sonarr:8989
+      # - SONARR_API_KEY=your_sonarr_api_key
+      # - SCAN_INTERVAL=3600
+      # - AUTO_TRANSLATE=true

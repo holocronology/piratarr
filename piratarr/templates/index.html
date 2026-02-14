@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piratarr - Pirate Subtitle Generator</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h1 class="logo">&#9760; Piratarr</h1>
+            <span class="version">v0.1.0</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="#" class="nav-link active" data-page="dashboard">Dashboard</a></li>
+            <li><a href="#" class="nav-link" data-page="media">Media Library</a></li>
+            <li><a href="#" class="nav-link" data-page="jobs">Translation Jobs</a></li>
+            <li><a href="#" class="nav-link" data-page="translate">Translate</a></li>
+            <li><a href="#" class="nav-link" data-page="settings">Settings</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <!-- Dashboard -->
+        <div id="page-dashboard" class="page active">
+            <h2>Dashboard</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-total-media">-</div>
+                    <div class="stat-label">Total Media</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-with-subs">-</div>
+                    <div class="stat-label">With Subtitles</div>
+                </div>
+                <div class="stat-card accent">
+                    <div class="stat-value" id="stat-pirate-subs">-</div>
+                    <div class="stat-label">Pirate Subtitles</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-pending">-</div>
+                    <div class="stat-label">Pending Jobs</div>
+                </div>
+            </div>
+
+            <div class="dashboard-row">
+                <div class="card">
+                    <h3>Scanner Status</h3>
+                    <div class="status-info">
+                        <p>Status: <span id="scanner-status" class="badge">-</span></p>
+                        <p>Last Scan: <span id="last-scan">Never</span></p>
+                    </div>
+                    <button class="btn btn-primary" id="btn-scan-now">Scan Now</button>
+                </div>
+
+                <div class="card">
+                    <h3>Recent Activity</h3>
+                    <div id="recent-jobs" class="job-list">
+                        <p class="muted">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Media Library -->
+        <div id="page-media" class="page">
+            <h2>Media Library</h2>
+            <div class="toolbar">
+                <select id="media-type-filter" class="input-field">
+                    <option value="">All Media</option>
+                    <option value="movie">Movies</option>
+                    <option value="episode">TV Episodes</option>
+                </select>
+                <button class="btn btn-primary" id="btn-refresh-media">Refresh</button>
+            </div>
+            <div id="media-list" class="table-container">
+                <p class="muted">Loading...</p>
+            </div>
+        </div>
+
+        <!-- Translation Jobs -->
+        <div id="page-jobs" class="page">
+            <h2>Translation Jobs</h2>
+            <div class="toolbar">
+                <select id="job-status-filter" class="input-field">
+                    <option value="">All Jobs</option>
+                    <option value="pending">Pending</option>
+                    <option value="processing">Processing</option>
+                    <option value="completed">Completed</option>
+                    <option value="failed">Failed</option>
+                </select>
+                <button class="btn btn-secondary" id="btn-refresh-jobs">Refresh</button>
+            </div>
+            <div id="jobs-list" class="table-container">
+                <p class="muted">Loading...</p>
+            </div>
+        </div>
+
+        <!-- Translate -->
+        <div id="page-translate" class="page">
+            <h2>Translate Preview</h2>
+            <div class="card">
+                <p>Test the pirate speak translation engine by entering some text below.</p>
+                <textarea id="translate-input" class="input-field textarea" rows="4"
+                    placeholder="Enter English text to translate...">Hello my friend, I am looking for the treasure. Do you know where it is?</textarea>
+                <button class="btn btn-primary" id="btn-translate">Translate to Pirate Speak</button>
+                <div id="translate-output" class="translate-result"></div>
+            </div>
+
+            <div class="card" style="margin-top: 1rem;">
+                <h3>Translate SRT File</h3>
+                <div class="form-group">
+                    <label>SRT File Path</label>
+                    <input type="text" id="srt-path-input" class="input-field"
+                        placeholder="/movies/Movie Name/Movie.en.srt">
+                </div>
+                <button class="btn btn-primary" id="btn-translate-file">Translate File</button>
+                <div id="translate-file-output" class="translate-result"></div>
+            </div>
+        </div>
+
+        <!-- Settings -->
+        <div id="page-settings" class="page">
+            <h2>Settings</h2>
+
+            <div class="card">
+                <h3>Radarr (Movies)</h3>
+                <div class="form-group">
+                    <label>Radarr URL</label>
+                    <input type="text" id="radarr-url" class="input-field" placeholder="http://radarr:7878">
+                </div>
+                <div class="form-group">
+                    <label>API Key</label>
+                    <input type="password" id="radarr-api-key" class="input-field" placeholder="Your Radarr API key">
+                </div>
+                <button class="btn btn-secondary btn-test" data-service="radarr">Test Connection</button>
+                <span class="test-result" id="radarr-test-result"></span>
+            </div>
+
+            <div class="card">
+                <h3>Sonarr (TV Series)</h3>
+                <div class="form-group">
+                    <label>Sonarr URL</label>
+                    <input type="text" id="sonarr-url" class="input-field" placeholder="http://sonarr:8989">
+                </div>
+                <div class="form-group">
+                    <label>API Key</label>
+                    <input type="password" id="sonarr-api-key" class="input-field" placeholder="Your Sonarr API key">
+                </div>
+                <button class="btn btn-secondary btn-test" data-service="sonarr">Test Connection</button>
+                <span class="test-result" id="sonarr-test-result"></span>
+            </div>
+
+            <div class="card">
+                <h3>General</h3>
+                <div class="form-group">
+                    <label>Scan Interval (seconds)</label>
+                    <input type="number" id="scan-interval" class="input-field" value="3600" min="300">
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="auto-translate" checked>
+                        Auto-translate new subtitles
+                    </label>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" id="btn-save-settings">Save Settings</button>
+            <span id="settings-save-result" class="test-result"></span>
+        </div>
+    </main>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
