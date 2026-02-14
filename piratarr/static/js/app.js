@@ -103,8 +103,10 @@ document.addEventListener("DOMContentLoaded", () => {
                         <tr>
                             <th>Title</th>
                             <th>Type</th>
+                            <th>Path</th>
                             <th>Subtitles</th>
                             <th>Pirate Subs</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -112,17 +114,36 @@ document.addEventListener("DOMContentLoaded", () => {
                             <tr>
                                 <td>${escapeHtml(item.title)}</td>
                                 <td>${item.media_type}</td>
+                                <td class="path-cell" title="${escapeHtml(item.path)}">${escapeHtml(item.path)}</td>
                                 <td>${item.has_subtitle
                                     ? '<span class="badge badge-success">Yes</span>'
                                     : '<span class="badge badge-danger">No</span>'}</td>
                                 <td>${item.has_pirate_subtitle
                                     ? '<span class="badge badge-success">Yes</span>'
                                     : '<span class="badge badge-danger">No</span>'}</td>
+                                <td>${item.has_subtitle && !item.has_pirate_subtitle
+                                    ? `<button class="btn btn-small btn-primary btn-translate-media" data-media-id="${item.id}">Translate</button>`
+                                    : item.has_pirate_subtitle ? '<span class="badge badge-success">Done</span>' : ''}</td>
                             </tr>
                         `).join("")}
                     </tbody>
                 </table>
             `;
+
+            // Translate buttons
+            container.querySelectorAll(".btn-translate-media").forEach(btn => {
+                btn.addEventListener("click", async () => {
+                    btn.disabled = true;
+                    btn.textContent = "Translating...";
+                    try {
+                        await api(`/api/media/${btn.dataset.mediaId}/translate`, { method: "POST" });
+                        await loadMedia();
+                    } catch (err) {
+                        btn.textContent = "Failed";
+                        console.error("Translation failed:", err);
+                    }
+                });
+            });
         } catch (err) {
             console.error("Failed to load media:", err);
         }
@@ -270,7 +291,7 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("sonarr-url").value = settings.sonarr_url || "";
             document.getElementById("sonarr-api-key").value = settings.sonarr_api_key || "";
             document.getElementById("scan-interval").value = settings.scan_interval || "3600";
-            document.getElementById("auto-translate").checked = (settings.auto_translate || "true") === "true";
+            document.getElementById("auto-translate").checked = settings.auto_translate === "true";
             currentPathMappings = settings.path_mappings || [];
             renderPathMappings(currentPathMappings);
         } catch (err) {

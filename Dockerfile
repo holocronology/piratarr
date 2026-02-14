@@ -9,7 +9,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIRATARR_CONFIG_DIR=/config \
     PIRATARR_PORT=6919
 
-# Install gosu for dropping privileges at runtime
+# Install gosu for privilege dropping and shadow for usermod/groupmod
 RUN apt-get update && apt-get install -y --no-install-recommends gosu && \
     rm -rf /var/lib/apt/lists/*
 
