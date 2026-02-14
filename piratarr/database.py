@@ -75,6 +75,9 @@ class MediaCache(Base):
     has_subtitle = Column(Boolean, default=False)
     has_pirate_subtitle = Column(Boolean, default=False)
     last_scanned = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    series_title = Column(String(500), nullable=True)
+    season_number = Column(Integer, nullable=True)
+    episode_number = Column(Integer, nullable=True)
 
     def __repr__(self):
         return f"<MediaCache {self.title} [{self.media_type}]>"
@@ -89,6 +92,9 @@ class MediaCache(Base):
             "has_subtitle": self.has_subtitle,
             "has_pirate_subtitle": self.has_pirate_subtitle,
             "last_scanned": self.last_scanned.isoformat() if self.last_scanned else None,
+            "series_title": self.series_title,
+            "season_number": self.season_number,
+            "episode_number": self.episode_number,
         }
 
 

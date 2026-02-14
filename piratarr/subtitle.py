@@ -121,8 +121,16 @@ def translate_subtitle_file(subtitle_file: SubtitleFile, seed: int | None = None
 def get_pirate_srt_path(original_path: str) -> str:
     """Get the output path for a pirate-translated SRT file.
 
-    Converts 'movie.srt' -> 'movie.pirate.srt'
-    Converts 'movie.en.srt' -> 'movie.pirate.srt'
+    Preserves language codes so media players (Plex, Jellyfin) can identify
+    the subtitle language.  The '.pirate' marker is inserted before the
+    language/tag suffixes.
+
+    Examples:
+        'movie.en.srt'      -> 'movie.pirate.en.srt'
+        'movie.eng.srt'     -> 'movie.pirate.eng.srt'
+        'movie.en.hi.srt'   -> 'movie.pirate.en.hi.srt'
+        'movie.en.sdh.srt'  -> 'movie.pirate.en.sdh.srt'
+        'movie.srt'         -> 'movie.pirate.srt'
 
     Args:
         original_path: Path to the original SRT file.
@@ -131,9 +139,17 @@ def get_pirate_srt_path(original_path: str) -> str:
         Path for the pirate-speak SRT output.
     """
     base, ext = os.path.splitext(original_path)
-    # Strip common language codes from the base name
-    lang_pattern = re.compile(r"\.(en|eng|english)$", re.IGNORECASE)
-    base = lang_pattern.sub("", base)
+    # Match language code and optional tags (hi, sdh, forced, cc, default)
+    # at the end of the base name, e.g. ".en", ".eng.hi", ".en.sdh"
+    suffix_pattern = re.compile(
+        r"(\.(en|eng|english))(\.(hi|sdh|forced|cc|default))?$",
+        re.IGNORECASE,
+    )
+    m = suffix_pattern.search(base)
+    if m:
+        # Insert .pirate before the language suffix
+        insert_pos = m.start()
+        return f"{base[:insert_pos]}.pirate{base[insert_pos:]}{ext}"
     return f"{base}.pirate{ext}"
 
 

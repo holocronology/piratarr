@@ -163,6 +163,9 @@ class Scanner:
                 cached.path = local_path
                 cached.has_subtitle = len(srt_files) > 0
                 cached.last_scanned = datetime.now(timezone.utc)
+                cached.series_title = item.series_title
+                cached.season_number = item.season_number
+                cached.episode_number = item.episode_number
 
                 for srt_path in srt_files:
                     summary["subtitles_found"] += 1
