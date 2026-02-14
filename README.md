@@ -41,7 +41,7 @@ Automatically generate pirate speak subtitles for your media library. A Bazarr-i
    docker compose up -d
    ```
 
-4. Open the web UI at `http://localhost:6969`
+4. Open the web UI at `http://localhost:6919`
 
 ### Docker CLI
 
@@ -49,7 +49,7 @@ Automatically generate pirate speak subtitles for your media library. A Bazarr-i
 docker build -t piratarr .
 docker run -d \
   --name piratarr \
-  -p 6969:6969 \
+  -p 6919:6919 \
   -v ./config:/config \
   -v /path/to/movies:/movies \
   -v /path/to/tv:/tv \
@@ -70,7 +70,7 @@ Settings can be configured via environment variables or through the web UI under
 | `SONARR_API_KEY` | Sonarr API key | _(none)_ |
 | `SCAN_INTERVAL` | Seconds between library scans | `3600` |
 | `AUTO_TRANSLATE` | Auto-translate discovered subtitles | `true` |
-| `PIRATARR_PORT` | Web UI port | `6969` |
+| `PIRATARR_PORT` | Web UI port | `6919` |
 | `PIRATARR_CONFIG_DIR` | Config/database directory | `/config` |
 
 ## How It Works

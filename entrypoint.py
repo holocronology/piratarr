@@ -13,7 +13,7 @@ logger = logging.getLogger("piratarr")
 
 
 def main():
-    port = int(os.environ.get("PIRATARR_PORT", "6969"))
+    port = int(os.environ.get("PIRATARR_PORT", "6919"))
 
     logger.info("Starting Piratarr v0.1.0 on port %d", port)
     logger.info("Config directory: %s", os.environ.get("PIRATARR_CONFIG_DIR", "/config"))
