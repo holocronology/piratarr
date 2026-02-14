@@ -153,6 +153,13 @@
             </div>
 
             <div class="card">
+                <h3>Path Mappings</h3>
+                <p class="muted">Map paths from Sonarr/Radarr to the local filesystem inside the Piratarr container. For example, if Radarr sees movies at <code>/movies</code> but they are mounted at <code>/data/movies</code> in this container, add a mapping below.</p>
+                <div id="path-mappings-list"></div>
+                <button class="btn btn-secondary" id="btn-add-mapping">+ Add Mapping</button>
+            </div>
+
+            <div class="card">
                 <h3>General</h3>
                 <div class="form-group">
                     <label>Scan Interval (seconds)</label>

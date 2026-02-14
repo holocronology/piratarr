@@ -150,6 +150,32 @@ class SonarrClient(ArrClient):
         return items
 
 
+def apply_path_mapping(path: str, mappings: list[dict]) -> str:
+    """Remap a path from an *arr container to the local filesystem.
+
+    Sonarr/Radarr report paths as they appear inside their own containers.
+    This function translates those paths using configured mappings so that
+    Piratarr can access the files on its own filesystem.
+
+    Args:
+        path: Original path from the *arr API.
+        mappings: List of {"remote_path": ..., "local_path": ...} dicts.
+
+    Returns:
+        Remapped path, or the original if no mapping matches.
+    """
+    for mapping in mappings:
+        remote = mapping.get("remote_path", "")
+        local = mapping.get("local_path", "")
+        if not remote or not local:
+            continue
+        # Normalise so that "/movies" and "/movies/" both work
+        remote_norm = remote.rstrip("/")
+        if path == remote_norm or path.startswith(remote_norm + "/"):
+            return local.rstrip("/") + path[len(remote_norm):]
+    return path
+
+
 def find_subtitle_files(media_path: str) -> list[str]:
     """Find SRT subtitle files adjacent to a media file.
 

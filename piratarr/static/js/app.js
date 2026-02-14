@@ -225,6 +225,43 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // --- Settings ---
+    function renderPathMappings(mappings) {
+        const container = document.getElementById("path-mappings-list");
+        container.innerHTML = "";
+        (mappings || []).forEach((mapping, idx) => {
+            const row = document.createElement("div");
+            row.className = "path-mapping-row";
+            row.innerHTML = `
+                <div class="form-group" style="display:inline-block;width:40%">
+                    <label>Remote Path (Sonarr/Radarr)</label>
+                    <input type="text" class="input-field mapping-remote" data-idx="${idx}" value="${escapeHtml(mapping.remote_path || "")}" placeholder="/movies">
+                </div>
+                <span style="display:inline-block;width:3%;text-align:center;padding-top:1.5rem;">&rarr;</span>
+                <div class="form-group" style="display:inline-block;width:40%">
+                    <label>Local Path (Piratarr)</label>
+                    <input type="text" class="input-field mapping-local" data-idx="${idx}" value="${escapeHtml(mapping.local_path || "")}" placeholder="/data/movies">
+                </div>
+                <button class="btn btn-small btn-danger btn-remove-mapping" data-idx="${idx}" style="margin-left:0.5rem;margin-top:1.5rem;">Remove</button>
+            `;
+            container.appendChild(row);
+        });
+
+        container.querySelectorAll(".btn-remove-mapping").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const i = parseInt(btn.dataset.idx);
+                currentPathMappings.splice(i, 1);
+                renderPathMappings(currentPathMappings);
+            });
+        });
+    }
+
+    let currentPathMappings = [];
+
+    document.getElementById("btn-add-mapping").addEventListener("click", () => {
+        currentPathMappings.push({ remote_path: "", local_path: "" });
+        renderPathMappings(currentPathMappings);
+    });
+
     async function loadSettings() {
         try {
             const settings = await api("/api/settings");
@@ -234,6 +271,8 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("sonarr-api-key").value = settings.sonarr_api_key || "";
             document.getElementById("scan-interval").value = settings.scan_interval || "3600";
             document.getElementById("auto-translate").checked = (settings.auto_translate || "true") === "true";
+            currentPathMappings = settings.path_mappings || [];
+            renderPathMappings(currentPathMappings);
         } catch (err) {
             console.error("Failed to load settings:", err);
         }
@@ -279,6 +318,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Save settings
     document.getElementById("btn-save-settings").addEventListener("click", async () => {
+        // Collect path mappings from the UI inputs
+        const mappingRemotes = document.querySelectorAll(".mapping-remote");
+        const mappingLocals = document.querySelectorAll(".mapping-local");
+        const pathMappings = [];
+        mappingRemotes.forEach((input, i) => {
+            const remote = input.value.trim();
+            const local = mappingLocals[i].value.trim();
+            if (remote && local) {
+                pathMappings.push({ remote_path: remote, local_path: local });
+            }
+        });
+        currentPathMappings = pathMappings;
+
         const settings = {
             radarr_url: document.getElementById("radarr-url").value,
             radarr_api_key: document.getElementById("radarr-api-key").value,
@@ -286,6 +338,7 @@ document.addEventListener("DOMContentLoaded", () => {
             sonarr_api_key: document.getElementById("sonarr-api-key").value,
             scan_interval: document.getElementById("scan-interval").value,
             auto_translate: document.getElementById("auto-translate").checked ? "true" : "false",
+            path_mappings: pathMappings,
         };
 
         const resultEl = document.getElementById("settings-save-result");
