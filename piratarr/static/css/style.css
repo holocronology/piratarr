@@ -370,6 +370,18 @@ tr:hover {
     font-size: 0.75rem;
 }
 
+/* Path mappings */
+.path-mapping-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.path-mapping-row .form-group {
+    margin-bottom: 0;
+}
+
 /* Muted text */
 .muted {
     color: var(--text-secondary);

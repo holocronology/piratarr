@@ -7,7 +7,9 @@ services:
       - "6919:6919"
     volumes:
       - ./config:/config
-      # Mount your media libraries (adjust paths to match your setup)
+      # Mount your media libraries so Piratarr can access subtitle files.
+      # Then configure Path Mappings in Settings to translate Sonarr/Radarr
+      # paths to these mount points (e.g. /movies in Radarr -> /movies here).
       # - /path/to/movies:/movies
       # - /path/to/tv:/tv
     environment:

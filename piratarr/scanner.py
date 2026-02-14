@@ -10,7 +10,9 @@ import threading
 import time
 from datetime import datetime, timezone
 
-from piratarr.arr_client import RadarrClient, SonarrClient, find_subtitle_files
+import json
+
+from piratarr.arr_client import RadarrClient, SonarrClient, apply_path_mapping, find_subtitle_files
 from piratarr.database import MediaCache, TranslationJob, get_config, get_session
 from piratarr.subtitle import get_pirate_srt_path, process_srt_file
 
@@ -81,6 +83,13 @@ class Scanner:
         self._is_scanning = True
         summary = {"movies_found": 0, "episodes_found": 0, "subtitles_found": 0, "translations_queued": 0}
 
+        # Load path mappings (remote *arr paths -> local Piratarr paths)
+        try:
+            raw = get_config("path_mappings", "[]")
+            path_mappings = json.loads(raw) if raw else []
+        except (json.JSONDecodeError, TypeError):
+            path_mappings = []
+
         try:
             # Scan Radarr (movies)
             radarr_url = get_config("radarr_url")
@@ -90,7 +99,7 @@ class Scanner:
                     radarr = RadarrClient(radarr_url, radarr_key)
                     movies = radarr.get_movies()
                     summary["movies_found"] = len(movies)
-                    self._process_media_items(movies, summary)
+                    self._process_media_items(movies, summary, path_mappings)
                 except Exception as e:
                     logger.error("Radarr scan failed: %s", e)
 
@@ -102,7 +111,7 @@ class Scanner:
                     sonarr = SonarrClient(sonarr_url, sonarr_key)
                     episodes = sonarr.get_all_episodes()
                     summary["episodes_found"] = len(episodes)
-                    self._process_media_items(episodes, summary)
+                    self._process_media_items(episodes, summary, path_mappings)
                 except Exception as e:
                     logger.error("Sonarr scan failed: %s", e)
 
@@ -121,12 +130,14 @@ class Scanner:
 
         return summary
 
-    def _process_media_items(self, items, summary: dict) -> None:
+    def _process_media_items(self, items, summary: dict, path_mappings: list | None = None) -> None:
         """Process a list of media items — find subtitles and queue translations."""
         session = get_session()
         try:
             for item in items:
-                srt_files = find_subtitle_files(item.path)
+                # Remap arr paths to local filesystem paths
+                local_path = apply_path_mapping(item.path, path_mappings or [])
+                srt_files = find_subtitle_files(local_path)
 
                 # Update media cache
                 cached = session.query(MediaCache).filter_by(arr_id=item.arr_id, media_type=item.media_type).first()
@@ -135,10 +146,11 @@ class Scanner:
                         arr_id=item.arr_id,
                         title=item.display_title,
                         media_type=item.media_type,
-                        path=item.path,
+                        path=local_path,
                     )
                     session.add(cached)
 
+                cached.path = local_path
                 cached.has_subtitle = len(srt_files) > 0
                 cached.last_scanned = datetime.now(timezone.utc)
 

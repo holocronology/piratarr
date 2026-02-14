@@ -177,6 +177,8 @@ def create_app() -> Flask:
     @app.route("/api/settings", methods=["GET"])
     def api_get_settings():
         """Get current application settings."""
+        import json as _json
+
         settings = {
             "radarr_url": get_config("radarr_url", ""),
             "radarr_api_key": get_config("radarr_api_key", ""),
@@ -185,6 +187,12 @@ def create_app() -> Flask:
             "scan_interval": get_config("scan_interval", "3600"),
             "auto_translate": get_config("auto_translate", "true"),
         }
+        # Path mappings stored as JSON string
+        raw_mappings = get_config("path_mappings", "[]")
+        try:
+            settings["path_mappings"] = _json.loads(raw_mappings) if raw_mappings else []
+        except (_json.JSONDecodeError, TypeError):
+            settings["path_mappings"] = []
         # Mask API keys for display
         for key in ("radarr_api_key", "sonarr_api_key"):
             val = settings[key]
@@ -197,6 +205,8 @@ def create_app() -> Flask:
     @app.route("/api/settings", methods=["POST"])
     def api_save_settings():
         """Save application settings."""
+        import json as _json
+
         data = request.get_json()
         if not data:
             return jsonify({"error": "No data provided"}), 400
@@ -205,6 +215,14 @@ def create_app() -> Flask:
         for key, value in data.items():
             if key in allowed_keys:
                 set_config(key, value)
+
+        # Path mappings are stored as a JSON string
+        if "path_mappings" in data:
+            mappings = data["path_mappings"]
+            if isinstance(mappings, list):
+                # Filter out empty entries
+                mappings = [m for m in mappings if m.get("remote_path") and m.get("local_path")]
+                set_config("path_mappings", _json.dumps(mappings))
 
         return jsonify({"message": "Settings saved"})
 
