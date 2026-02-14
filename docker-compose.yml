@@ -4,7 +4,7 @@ services:
     container_name: piratarr
     restart: unless-stopped
     ports:
-      - "6969:6969"
+      - "6919:6919"
     volumes:
       - ./config:/config
       # Mount your media libraries (adjust paths to match your setup)

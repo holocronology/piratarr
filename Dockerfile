@@ -7,7 +7,7 @@ LABEL description="Piratarr - Pirate speak subtitle generator for your media lib
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIRATARR_CONFIG_DIR=/config \
-    PIRATARR_PORT=6969
+    PIRATARR_PORT=6919
 
 # Create app user
 RUN groupadd -g 1000 piratarr && \
