@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 from flask import Flask, jsonify, render_template, request
 
-from piratarr.arr_client import RadarrClient, SonarrClient
+from piratarr.arr_client import RadarrClient, SonarrClient, find_subtitle_files
 from piratarr.database import (
     Config,
     MediaCache,
@@ -166,6 +166,62 @@ def create_app() -> Flask:
         finally:
             session.close()
 
+    @app.route("/api/media/<int:media_id>/translate", methods=["POST"])
+    def api_translate_media(media_id):
+        """Translate subtitles for a specific media item."""
+        session = get_session()
+        try:
+            cached = session.query(MediaCache).get(media_id)
+            if not cached:
+                return jsonify({"error": "Media not found"}), 404
+
+            srt_files = find_subtitle_files(cached.path)
+            if not srt_files:
+                return jsonify({"error": "No subtitle files found for this media"}), 404
+
+            jobs_created = 0
+            for srt_path in srt_files:
+                from piratarr.subtitle import get_pirate_srt_path
+                pirate_path = get_pirate_srt_path(srt_path)
+                if os.path.exists(pirate_path):
+                    continue
+
+                # Skip if job already pending/processing
+                existing = (
+                    session.query(TranslationJob)
+                    .filter_by(source_path=srt_path)
+                    .filter(TranslationJob.status.in_(["pending", "processing"]))
+                    .first()
+                )
+                if existing:
+                    continue
+
+                job = TranslationJob(
+                    media_title=cached.title,
+                    media_type=cached.media_type,
+                    source_path=srt_path,
+                    status="pending",
+                )
+                session.add(job)
+                jobs_created += 1
+
+            session.commit()
+
+            # Process queued jobs immediately
+            if jobs_created > 0:
+                from piratarr.scanner import scanner
+                scanner._process_pending_jobs()
+                # Update the media cache entry
+                cached.has_pirate_subtitle = True
+                session.commit()
+
+            return jsonify({
+                "message": f"Translated {jobs_created} subtitle file(s)" if jobs_created > 0 else "Already translated",
+                "jobs_created": jobs_created,
+            })
+        finally:
+            session.close()
+
     @app.route("/api/scan", methods=["POST"])
     def api_trigger_scan():
         """Trigger an immediate media scan."""
@@ -185,7 +241,7 @@ def create_app() -> Flask:
             "sonarr_url": get_config("sonarr_url", ""),
             "sonarr_api_key": get_config("sonarr_api_key", ""),
             "scan_interval": get_config("scan_interval", "3600"),
-            "auto_translate": get_config("auto_translate", "true"),
+            "auto_translate": get_config("auto_translate", "false"),
         }
         # Path mappings stored as JSON string
         raw_mappings = get_config("path_mappings", "[]")

@@ -184,7 +184,7 @@ class Scanner:
                         continue
 
                     # Queue a new translation job
-                    auto_translate = get_config("auto_translate", "true")
+                    auto_translate = get_config("auto_translate", "false")
                     if auto_translate.lower() == "true":
                         job = TranslationJob(
                             media_title=item.display_title,
