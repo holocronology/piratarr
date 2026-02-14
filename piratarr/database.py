@@ -3,7 +3,7 @@
 import os
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, DateTime, Enum, Integer, String, Text, create_engine
+from sqlalchemy import Boolean, Column, DateTime, Enum, Integer, String, Text, create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 
@@ -103,6 +103,21 @@ _engine = None
 _SessionFactory = None
 
 
+def _migrate(engine) -> None:
+    """Add any missing columns to existing tables (simple schema migration)."""
+    insp = inspect(engine)
+    if "media_cache" in insp.get_table_names():
+        existing = {col["name"] for col in insp.get_columns("media_cache")}
+        with engine.connect() as conn:
+            if "series_title" not in existing:
+                conn.execute(text("ALTER TABLE media_cache ADD COLUMN series_title VARCHAR(500)"))
+            if "season_number" not in existing:
+                conn.execute(text("ALTER TABLE media_cache ADD COLUMN season_number INTEGER"))
+            if "episode_number" not in existing:
+                conn.execute(text("ALTER TABLE media_cache ADD COLUMN episode_number INTEGER"))
+            conn.commit()
+
+
 def init_db(db_path: str | None = None) -> None:
     """Initialize the database engine and create tables.
 
@@ -118,6 +133,7 @@ def init_db(db_path: str | None = None) -> None:
 
     _engine = create_engine(f"sqlite:///{db_path}", echo=False)
     Base.metadata.create_all(_engine)
+    _migrate(_engine)
     _SessionFactory = sessionmaker(bind=_engine)
 
 
