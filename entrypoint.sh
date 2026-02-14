@@ -1,11 +1,24 @@
 #!/bin/sh
 # Piratarr container entrypoint
-# Ensures /config directory is writable, then starts the application.
+# Handles PUID/PGID for proper file permissions, then starts the application.
 
 CONFIG_DIR="${PIRATARR_CONFIG_DIR:-/config}"
 
-# If running as root, fix permissions and re-exec as piratarr user
+# If running as root, adjust UID/GID and re-exec as piratarr user
 if [ "$(id -u)" = "0" ]; then
+    PUID="${PUID:-1000}"
+    PGID="${PGID:-1000}"
+
+    # Update the piratarr group/user to match requested IDs
+    if [ "$(id -g piratarr)" != "$PGID" ]; then
+        groupmod -o -g "$PGID" piratarr
+    fi
+    if [ "$(id -u piratarr)" != "$PUID" ]; then
+        usermod -o -u "$PUID" piratarr
+    fi
+
+    echo "Starting Piratarr with UID=$(id -u piratarr) GID=$(id -g piratarr)"
+
     mkdir -p "$CONFIG_DIR"
     chown piratarr:piratarr "$CONFIG_DIR"
     exec gosu piratarr python entrypoint.py

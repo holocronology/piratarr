@@ -89,6 +89,10 @@ class Scanner:
             path_mappings = json.loads(raw) if raw else []
         except (json.JSONDecodeError, TypeError):
             path_mappings = []
+        if path_mappings:
+            logger.info("Using %d path mapping(s)", len(path_mappings))
+        else:
+            logger.info("No path mappings configured")
 
         try:
             # Scan Radarr (movies)
@@ -137,6 +141,12 @@ class Scanner:
             for item in items:
                 # Remap arr paths to local filesystem paths
                 local_path = apply_path_mapping(item.path, path_mappings or [])
+                if local_path != item.path:
+                    logger.debug("Path mapped: %s -> %s", item.path, local_path)
+
+                media_dir = os.path.dirname(local_path)
+                if not os.path.isdir(media_dir):
+                    logger.warning("Directory not accessible: %s (from arr path: %s)", media_dir, item.path)
                 srt_files = find_subtitle_files(local_path)
 
                 # Update media cache

@@ -103,6 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <tr>
                             <th>Title</th>
                             <th>Type</th>
+                            <th>Path</th>
                             <th>Subtitles</th>
                             <th>Pirate Subs</th>
                         </tr>
@@ -112,6 +113,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             <tr>
                                 <td>${escapeHtml(item.title)}</td>
                                 <td>${item.media_type}</td>
+                                <td class="path-cell" title="${escapeHtml(item.path)}">${escapeHtml(item.path)}</td>
                                 <td>${item.has_subtitle
                                     ? '<span class="badge badge-success">Yes</span>'
                                     : '<span class="badge badge-danger">No</span>'}</td>
