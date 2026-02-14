@@ -222,6 +222,64 @@ def create_app() -> Flask:
         finally:
             session.close()
 
+    @app.route("/api/translate/batch", methods=["POST"])
+    def api_translate_batch():
+        """Translate subtitles for multiple media items at once."""
+        data = request.get_json()
+        if not data or "media_ids" not in data:
+            return jsonify({"error": "Missing 'media_ids' in request body"}), 400
+
+        media_ids = data["media_ids"]
+        if not isinstance(media_ids, list) or not media_ids:
+            return jsonify({"error": "'media_ids' must be a non-empty list"}), 400
+
+        session = get_session()
+        try:
+            from piratarr.subtitle import get_pirate_srt_path
+
+            total_jobs = 0
+            items = session.query(MediaCache).filter(MediaCache.id.in_(media_ids)).all()
+
+            for cached in items:
+                srt_files = find_subtitle_files(cached.path)
+                for srt_path in srt_files:
+                    pirate_path = get_pirate_srt_path(srt_path)
+                    if os.path.exists(pirate_path):
+                        continue
+
+                    existing = (
+                        session.query(TranslationJob)
+                        .filter_by(source_path=srt_path)
+                        .filter(TranslationJob.status.in_(["pending", "processing"]))
+                        .first()
+                    )
+                    if existing:
+                        continue
+
+                    job = TranslationJob(
+                        media_title=cached.title,
+                        media_type=cached.media_type,
+                        source_path=srt_path,
+                        status="pending",
+                    )
+                    session.add(job)
+                    total_jobs += 1
+
+            session.commit()
+
+            if total_jobs > 0:
+                scanner._process_pending_jobs()
+                for cached in items:
+                    cached.has_pirate_subtitle = True
+                session.commit()
+
+            return jsonify({
+                "message": f"Translated {total_jobs} subtitle file(s)" if total_jobs > 0 else "All already translated",
+                "jobs_created": total_jobs,
+            })
+        finally:
+            session.close()
+
     @app.route("/api/scan", methods=["POST"])
     def api_trigger_scan():
         """Trigger an immediate media scan."""

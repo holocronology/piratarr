@@ -97,56 +97,181 @@ document.addEventListener("DOMContentLoaded", () => {
                 container.innerHTML = '<p class="muted">No media found. Configure Sonarr/Radarr in Settings and run a scan.</p>';
                 return;
             }
-            container.innerHTML = `
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Title</th>
-                            <th>Type</th>
-                            <th>Path</th>
-                            <th>Subtitles</th>
-                            <th>Pirate Subs</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${items.map(item => `
-                            <tr>
-                                <td>${escapeHtml(item.title)}</td>
-                                <td>${item.media_type}</td>
-                                <td class="path-cell" title="${escapeHtml(item.path)}">${escapeHtml(item.path)}</td>
-                                <td>${item.has_subtitle
-                                    ? '<span class="badge badge-success">Yes</span>'
-                                    : '<span class="badge badge-danger">No</span>'}</td>
-                                <td>${item.has_pirate_subtitle
-                                    ? '<span class="badge badge-success">Yes</span>'
-                                    : '<span class="badge badge-danger">No</span>'}</td>
-                                <td>${item.has_subtitle && !item.has_pirate_subtitle
-                                    ? `<button class="btn btn-small btn-primary btn-translate-media" data-media-id="${item.id}">Translate</button>`
-                                    : item.has_pirate_subtitle ? '<span class="badge badge-success">Done</span>' : ''}</td>
-                            </tr>
-                        `).join("")}
-                    </tbody>
-                </table>
-            `;
 
-            // Translate buttons
-            container.querySelectorAll(".btn-translate-media").forEach(btn => {
-                btn.addEventListener("click", async () => {
-                    btn.disabled = true;
-                    btn.textContent = "Translating...";
-                    try {
-                        await api(`/api/media/${btn.dataset.mediaId}/translate`, { method: "POST" });
-                        await loadMedia();
-                    } catch (err) {
-                        btn.textContent = "Failed";
-                        console.error("Translation failed:", err);
+            const movies = items.filter(i => i.media_type === "movie");
+            const episodes = items.filter(i => i.media_type === "episode");
+
+            let html = "";
+
+            // Movies section
+            if (movies.length > 0 && filter !== "episode") {
+                html += `<h3 class="media-section-title">Movies (${movies.length})</h3>`;
+                html += `<table><thead><tr>
+                    <th>Title</th><th>Subtitles</th><th>Pirate Subs</th><th>Actions</th>
+                </tr></thead><tbody>`;
+                for (const m of movies) {
+                    html += `<tr>
+                        <td>${escapeHtml(m.title)}</td>
+                        <td>${m.has_subtitle ? '<span class="badge badge-success">Yes</span>' : '<span class="badge badge-danger">No</span>'}</td>
+                        <td>${m.has_pirate_subtitle ? '<span class="badge badge-success">Yes</span>' : '<span class="badge badge-danger">No</span>'}</td>
+                        <td>${translateButton(m)}</td>
+                    </tr>`;
+                }
+                html += `</tbody></table>`;
+            }
+
+            // TV section — group by series then season
+            if (episodes.length > 0 && filter !== "movie") {
+                const seriesMap = {};
+                for (const ep of episodes) {
+                    const key = ep.series_title || ep.title;
+                    if (!seriesMap[key]) seriesMap[key] = {};
+                    const sn = ep.season_number ?? 0;
+                    if (!seriesMap[key][sn]) seriesMap[key][sn] = [];
+                    seriesMap[key][sn].push(ep);
+                }
+
+                const seriesNames = Object.keys(seriesMap).sort();
+                html += `<h3 class="media-section-title">TV Series (${seriesNames.length} series, ${episodes.length} episodes)</h3>`;
+
+                for (const seriesName of seriesNames) {
+                    const seasons = seriesMap[seriesName];
+                    const allEps = Object.values(seasons).flat();
+                    const seriesHasSubs = allEps.some(e => e.has_subtitle);
+                    const seriesAllPirate = allEps.every(e => e.has_pirate_subtitle || !e.has_subtitle);
+                    const seriesTranslatable = allEps.filter(e => e.has_subtitle && !e.has_pirate_subtitle);
+                    const seriesIds = seriesTranslatable.map(e => e.id);
+
+                    html += `<div class="media-tree-series">
+                        <div class="media-tree-header" data-toggle="series">
+                            <span class="tree-expand">&#9654;</span>
+                            <span class="tree-title">${escapeHtml(seriesName)}</span>
+                            <span class="tree-stats">
+                                ${allEps.length} eps &middot;
+                                ${allEps.filter(e => e.has_pirate_subtitle).length}/${allEps.filter(e => e.has_subtitle).length} translated
+                            </span>
+                            ${seriesIds.length > 0
+                                ? `<button class="btn btn-small btn-primary btn-translate-batch" data-media-ids='${JSON.stringify(seriesIds)}'>Translate All</button>`
+                                : seriesAllPirate && seriesHasSubs ? '<span class="badge badge-success">Done</span>' : ''}
+                        </div>
+                        <div class="media-tree-children" style="display:none;">`;
+
+                    const seasonNums = Object.keys(seasons).map(Number).sort((a, b) => a - b);
+                    for (const sn of seasonNums) {
+                        const seasonEps = seasons[sn].sort((a, b) => (a.episode_number || 0) - (b.episode_number || 0));
+                        const seasonAllPirate = seasonEps.every(e => e.has_pirate_subtitle || !e.has_subtitle);
+                        const seasonHasSubs = seasonEps.some(e => e.has_subtitle);
+                        const seasonTranslatable = seasonEps.filter(e => e.has_subtitle && !e.has_pirate_subtitle);
+                        const seasonIds = seasonTranslatable.map(e => e.id);
+
+                        html += `<div class="media-tree-season">
+                            <div class="media-tree-header media-tree-header-season" data-toggle="season">
+                                <span class="tree-expand">&#9654;</span>
+                                <span class="tree-title">Season ${sn}</span>
+                                <span class="tree-stats">
+                                    ${seasonEps.length} eps &middot;
+                                    ${seasonEps.filter(e => e.has_pirate_subtitle).length}/${seasonEps.filter(e => e.has_subtitle).length} translated
+                                </span>
+                                ${seasonIds.length > 0
+                                    ? `<button class="btn btn-small btn-primary btn-translate-batch" data-media-ids='${JSON.stringify(seasonIds)}'>Translate Season</button>`
+                                    : seasonAllPirate && seasonHasSubs ? '<span class="badge badge-success">Done</span>' : ''}
+                            </div>
+                            <div class="media-tree-children" style="display:none;">
+                                <table><thead><tr>
+                                    <th>Episode</th><th>Title</th><th>Subtitles</th><th>Pirate Subs</th><th>Actions</th>
+                                </tr></thead><tbody>`;
+
+                        for (const ep of seasonEps) {
+                            const epNum = ep.episode_number != null ? `E${String(ep.episode_number).padStart(2, "0")}` : "";
+                            const epTitle = ep.title.replace(/^.*?-\s*/, "");
+                            html += `<tr>
+                                <td>${epNum}</td>
+                                <td>${escapeHtml(epTitle)}</td>
+                                <td>${ep.has_subtitle ? '<span class="badge badge-success">Yes</span>' : '<span class="badge badge-danger">No</span>'}</td>
+                                <td>${ep.has_pirate_subtitle ? '<span class="badge badge-success">Yes</span>' : '<span class="badge badge-danger">No</span>'}</td>
+                                <td>${translateButton(ep)}</td>
+                            </tr>`;
+                        }
+
+                        html += `</tbody></table></div></div>`;
                     }
-                });
-            });
+
+                    html += `</div></div>`;
+                }
+            }
+
+            container.innerHTML = html;
+            bindTranslateButtons(container);
+            bindTreeToggles(container);
         } catch (err) {
             console.error("Failed to load media:", err);
         }
+    }
+
+    function translateButton(item) {
+        if (item.has_subtitle && !item.has_pirate_subtitle) {
+            return `<button class="btn btn-small btn-primary btn-translate-media" data-media-id="${item.id}">Translate</button>`;
+        }
+        if (item.has_pirate_subtitle) {
+            return '<span class="badge badge-success">Done</span>';
+        }
+        return '';
+    }
+
+    function bindTranslateButtons(container) {
+        // Single-item translate
+        container.querySelectorAll(".btn-translate-media").forEach(btn => {
+            btn.addEventListener("click", async (e) => {
+                e.stopPropagation();
+                btn.disabled = true;
+                btn.textContent = "Translating...";
+                try {
+                    await api(`/api/media/${btn.dataset.mediaId}/translate`, { method: "POST" });
+                    await loadMedia();
+                } catch (err) {
+                    btn.textContent = "Failed";
+                    console.error("Translation failed:", err);
+                }
+            });
+        });
+
+        // Batch translate (series/season)
+        container.querySelectorAll(".btn-translate-batch").forEach(btn => {
+            btn.addEventListener("click", async (e) => {
+                e.stopPropagation();
+                const ids = JSON.parse(btn.dataset.mediaIds);
+                btn.disabled = true;
+                btn.textContent = `Translating ${ids.length}...`;
+                try {
+                    await api("/api/translate/batch", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ media_ids: ids }),
+                    });
+                    await loadMedia();
+                } catch (err) {
+                    btn.textContent = "Failed";
+                    console.error("Batch translation failed:", err);
+                }
+            });
+        });
+    }
+
+    function bindTreeToggles(container) {
+        container.querySelectorAll(".media-tree-header").forEach(header => {
+            header.addEventListener("click", (e) => {
+                if (e.target.closest(".btn")) return;
+                const children = header.nextElementSibling;
+                const arrow = header.querySelector(".tree-expand");
+                if (children.style.display === "none") {
+                    children.style.display = "block";
+                    arrow.innerHTML = "&#9660;";
+                } else {
+                    children.style.display = "none";
+                    arrow.innerHTML = "&#9654;";
+                }
+            });
+        });
     }
 
     document.getElementById("media-type-filter").addEventListener("change", loadMedia);

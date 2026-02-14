@@ -72,9 +72,16 @@ def test_get_pirate_srt_path():
     assert get_pirate_srt_path("/movies/Movie/Movie.srt") == "/movies/Movie/Movie.pirate.srt"
 
 
-def test_get_pirate_srt_path_strips_lang():
-    assert get_pirate_srt_path("/movies/Movie/Movie.en.srt") == "/movies/Movie/Movie.pirate.srt"
-    assert get_pirate_srt_path("/movies/Movie/Movie.eng.srt") == "/movies/Movie/Movie.pirate.srt"
+def test_get_pirate_srt_path_preserves_lang():
+    # Language code should be kept at the end so media players detect the language
+    assert get_pirate_srt_path("/movies/Movie/Movie.en.srt") == "/movies/Movie/Movie.pirate.en.srt"
+    assert get_pirate_srt_path("/movies/Movie/Movie.eng.srt") == "/movies/Movie/Movie.pirate.eng.srt"
+
+
+def test_get_pirate_srt_path_preserves_lang_with_tags():
+    assert get_pirate_srt_path("/tv/Show/S01E01.en.hi.srt") == "/tv/Show/S01E01.pirate.en.hi.srt"
+    assert get_pirate_srt_path("/tv/Show/S01E01.en.sdh.srt") == "/tv/Show/S01E01.pirate.en.sdh.srt"
+    assert get_pirate_srt_path("/tv/Show/S01E01.eng.forced.srt") == "/tv/Show/S01E01.pirate.eng.forced.srt"
 
 
 def test_get_pirate_srt_path_preserves_extension():
