@@ -14,9 +14,22 @@ logger = logging.getLogger("piratarr")
 
 def main():
     port = int(os.environ.get("PIRATARR_PORT", "6919"))
+    config_dir = os.environ.get("PIRATARR_CONFIG_DIR", "/config")
 
     logger.info("Starting Piratarr v0.1.0 on port %d", port)
-    logger.info("Config directory: %s", os.environ.get("PIRATARR_CONFIG_DIR", "/config"))
+    logger.info("Config directory: %s", config_dir)
+
+    # Verify config directory is writable before starting
+    if not os.path.isdir(config_dir):
+        logger.error("Config directory %s does not exist. Create it and ensure it is writable.", config_dir)
+        raise SystemExit(1)
+    if not os.access(config_dir, os.W_OK):
+        logger.error(
+            "Config directory %s is not writable by UID %d. "
+            "Fix permissions with: chown %d:%d %s",
+            config_dir, os.getuid(), os.getuid(), os.getgid(), config_dir,
+        )
+        raise SystemExit(1)
 
     from piratarr.app import create_app
 
