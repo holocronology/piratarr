@@ -17,36 +17,37 @@ Automatically generate pirate speak subtitles for your media library. A Bazarr-i
 
 ### Docker Compose (Recommended)
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/holocronology/piratarr.git
-   cd piratarr
-   ```
-
-2. Edit `docker-compose.yml` to mount your media directories and optionally set Sonarr/Radarr credentials:
+1. Create a `docker-compose.yml` (or copy the one from this repo):
    ```yaml
-   volumes:
-     - ./config:/config
-     - /path/to/movies:/movies
-     - /path/to/tv:/tv
-   environment:
-     - RADARR_URL=http://radarr:7878
-     - RADARR_API_KEY=your_api_key
-     - SONARR_URL=http://sonarr:8989
-     - SONARR_API_KEY=your_api_key
+   services:
+     piratarr:
+       image: ghcr.io/holocronology/piratarr:latest
+       container_name: piratarr
+       restart: unless-stopped
+       ports:
+         - "6919:6919"
+       volumes:
+         - ./config:/config
+         - /path/to/movies:/movies
+         - /path/to/tv:/tv
+       environment:
+         - TZ=America/New_York
+         - RADARR_URL=http://radarr:7878
+         - RADARR_API_KEY=your_api_key
+         - SONARR_URL=http://sonarr:8989
+         - SONARR_API_KEY=your_api_key
    ```
 
-3. Start the container:
+2. Start the container:
    ```bash
    docker compose up -d
    ```
 
-4. Open the web UI at `http://localhost:6919`
+3. Open the web UI at `http://localhost:6919`
 
 ### Docker CLI
 
 ```bash
-docker build -t piratarr .
 docker run -d \
   --name piratarr \
   -p 6919:6919 \
@@ -55,7 +56,15 @@ docker run -d \
   -v /path/to/tv:/tv \
   -e RADARR_URL=http://radarr:7878 \
   -e RADARR_API_KEY=your_api_key \
-  piratarr
+  ghcr.io/holocronology/piratarr:latest
+```
+
+### Build from Source
+
+```bash
+git clone https://github.com/holocronology/piratarr.git
+cd piratarr
+docker build -t piratarr .
 ```
 
 ## Configuration

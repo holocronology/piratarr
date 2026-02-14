@@ -1,6 +1,6 @@
 services:
   piratarr:
-    build: .
+    image: ghcr.io/holocronology/piratarr:latest
     container_name: piratarr
     restart: unless-stopped
     ports:
