@@ -8,7 +8,7 @@ CONFIG_DIR="${PIRATARR_CONFIG_DIR:-/config}"
 if [ "$(id -u)" = "0" ]; then
     mkdir -p "$CONFIG_DIR"
     chown piratarr:piratarr "$CONFIG_DIR"
-    exec su-exec piratarr python entrypoint.py
+    exec gosu piratarr python entrypoint.py
 fi
 
 # If running as non-root (e.g. user set --user), just start directly

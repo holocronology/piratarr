@@ -9,8 +9,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIRATARR_CONFIG_DIR=/config \
     PIRATARR_PORT=6919
 
-# Install su-exec for dropping privileges at runtime
-RUN apt-get update && apt-get install -y --no-install-recommends su-exec && \
+# Install gosu for dropping privileges at runtime
+RUN apt-get update && apt-get install -y --no-install-recommends gosu && \
     rm -rf /var/lib/apt/lists/*
 
 # Create app user
